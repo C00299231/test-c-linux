@@ -12,6 +12,7 @@ const char *outFileName = "/home/user/Desktop/testOutput/";
 
 int readLinks(const char[]);
 int writeToFile(const char*, char[30][100]);
+int downloadToFile(const char*, char*, int);
 
 int main()
 {
@@ -29,13 +30,16 @@ int main()
         if(links[i][0] == '\0') // empty line
             continue;
 
-        const char *fullPath = getFullPath(links[i]);
-        if(!downloadToFile(links[i], fullPath, i))
+        
+            char *newFileName = "fileX";
+            newFileName[0] = '0';
+        
+        if(!downloadToFile(links[i], newFileName, i))
         {
-            printf(stderr, "DOWNLOAD FAILED for %s! Continuing...\n", links[i]);
+            fprintf(stderr, "DOWNLOAD FAILED for %s! Continuing...\n", links[i]);
             continue;
         }
-        printf("Downloaded %s to %s\n", links[i], fullPath);
+        printf("Downloaded %s to %s\n", links[i], newFileName);
     }
 
     return 0;
@@ -64,16 +68,17 @@ int readLinks(const char path[]) // file reading code from www.w3schools.com/c/c
     return 1;
 }
 
+/*
 // combine output folder with file name
 const char getFullPath(const char *filename)
 {
     char fullPath[200];
     snprintf(fullPath, sizeof(fullPath), "%s/%s", linksFile, filename);
     return fullPath;
-}
+}*/
 
 // download and save to file
-int downloadToFile(const char *url, char *filename, int index;) // curl DL code fromstackoverflow.com/questions/11471690/curl_h_no_such_file_or_directory
+int downloadToFile(const char *url, char *filename, int index) // curl DL code fromstackoverflow.com/questions/11471690/curl_h_no_such_file_or_directory
 {
     // init curl and file
     CURL *curl = curl_easy_init();
@@ -84,8 +89,9 @@ int downloadToFile(const char *url, char *filename, int index;) // curl DL code 
         fprintf(stderr, "Failed to initialize curl\n");
         return 0; // failure
     }
-    if (!fp) {
-        perror("Failed to open file");
+    if (!fp)
+    {
+        printf("Failed to open file");
         curl_easy_cleanup(curl);
         return 0;
     }
