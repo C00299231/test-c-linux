@@ -5,45 +5,38 @@
 // get link from file
 // download file from internet, save data to new file
 
-char links[30][100];
+char links[30][100]; // this will contain file NAMES!
 
 const char linksFile[] = "filesToDownload.txt";
+const char *outFileName = "/home/user/Desktop/testOutput/";
 
 int readLinks(const char[]);
 int writeToFile(const char*, char[30][100]);
 
-int main() // curl DL code fromstackoverflow.com/questions/11471690/curl_h_no_such_file_or_directory
+int main()
 {
-    if(!readLinks(linksFile)) // get web links from file
+
+    // first, read the links from the file
+    if(!readLinks(linksFile))
     {
         printf("READING FAILED! Exiting...\n");
         return 1;
     }
-    const char *outFileName = "/home/user/Desktop/testOutput/";
-
-    CURL *curl;
-    FILE *fp = fopen("newFile", "wb");
-
     
-    // initialize curl
-    curl = curl_easy_init();
-    if(!curl)
+    // next, download from web and save
+    for(int i = 0; i < 30; i++)
     {
-        printf("CURL INIT FAILED!");
-        return 1;
-    }
-    
-    // set curl options, perform curl
-    curl_easy_setopt(curl, CURLOPT_URL, links[0]);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
-    CURLcode res = curl_easy_perform(curl);
+        if(links[i][0] == '\0') // empty line
+            continue;
 
-    if(res != CURLE_OK)
-    {
-        fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
+        const char *fullPath = getFullPath(links[i]);
+        if(!downloadToFile(links[i], fullPath, i))
+        {
+            printf(stderr, "DOWNLOAD FAILED for %s! Continuing...\n", links[i]);
+            continue;
+        }
+        printf("Downloaded %s to %s\n", links[i], fullPath);
     }
-
-    curl_easy_cleanup(curl);
 
     return 0;
 }
@@ -65,28 +58,52 @@ int readLinks(const char path[]) // file reading code from www.w3schools.com/c/c
     {
         // stored string! nothing else to do here :/
     }
-    
+
     fclose(filePtr);
 
     return 1;
 }
 
-int writeToFile(const char *filename, char data[30][100])
+// combine output folder with file name
+const char getFullPath(const char *filename)
 {
-    FILE *filePtr = fopen(filename, "w");
-    if(filePtr == NULL)
-    {
-        // no file!
-        printf("\nUnable to open the specified file.\n");
+    char fullPath[200];
+    snprintf(fullPath, sizeof(fullPath), "%s/%s", linksFile, filename);
+    return fullPath;
+}
+
+// download and save to file
+int downloadToFile(const char *url, char *filename, int index;) // curl DL code fromstackoverflow.com/questions/11471690/curl_h_no_such_file_or_directory
+{
+    // init curl and file
+    CURL *curl = curl_easy_init();
+    FILE *fp = fopen(filename, "wb");
+
+    // errors
+    if (!curl) {
+        fprintf(stderr, "Failed to initialize curl\n");
+        return 0; // failure
+    }
+    if (!fp) {
+        perror("Failed to open file");
+        curl_easy_cleanup(curl);
         return 0;
     }
 
-    for(int idx = 0; idx < 30; idx++)
-    {
-        fprintf(filePtr, "%s\n", data[idx]);
+    // set curl options
+    curl_easy_setopt(curl, CURLOPT_URL, url);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
+
+    CURLcode res = curl_easy_perform(curl);
+    fclose(fp);
+
+    // more errors
+    if (res != CURLE_OK) {
+        fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
+        curl_easy_cleanup(curl);
+        return 0;
     }
 
-    fclose(filePtr);
-
+    curl_easy_cleanup(curl);
     return 1; // success
 }
