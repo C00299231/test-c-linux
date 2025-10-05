@@ -19,7 +19,7 @@ int main() // curl DL code fromstackoverflow.com/questions/11471690/curl_h_no_su
     FILE *fp;
     CURLcode res;
 
-    const char *outFileName = "/home/user/Desktop/testOutput";
+    const char *outFileName = "/home/user/Desktop/testOutput/";
 
     curl = curl_easy_init();
     if(!curl)
@@ -80,9 +80,9 @@ int writeToFile(const char *filename, const char *data)
     return 1; // success
 }
 
-const char getFullPath(const char *filename, const char *directory)
+const char getFullPath(const char *filename)
 {
     char fullPath[200];
-    snprintf(fullPath, sizeof(fullPath), "%s/%s", directory, filename);
+    snprintf(fullPath, sizeof(fullPath), "%s/%s", linksFile, filename);
     return fullPath;
 }
