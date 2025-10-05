@@ -1,26 +1,46 @@
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
+#include <sys/mman.h>
+
+#define max_pids 4
 
 int main()
 {
-    pid_t pid;
+    int parentPid = getpid();
+    pid_t pids[max_pids];
 
-    pid = fork();
+    printf("Parent PID: %d\n", getpid());
 
-    if(pid < 0) // error occurred
+    for(int idx = 0; idx < max_pids; idx++)
     {
-        fprintf(stderr, "Fork failed.");
-        return 1;
+        pid_t pid = fork();
+
+        if(pid < 0) // failed child process
+        {
+            printf("child %d failed to fork...\n", idx);
+        }
+        
+        if(pid == 0) // uninitialized value: means is child process
+        {
+            printf("child %d is active...\n", idx);
+            sleep(1+idx);
+            exit(EXIT_SUCCESS);
+            // anything past here WILL NOT be executed.
+        }
+        else // parent process
+        {
+            pids[idx] = pid;
+        }
     }
-    else if(pid == 0) // child process
+
+    for(int i = 0; i < max_pids; i++) // wait for each process to finish
     {
-        execlp("/bin/ls","ls", NULL);
-    }
-    else // parent will wait for child to complete
-    {
-        wait(NULL);
-        printf("Child Complete");
+        int status;
+        waitpid(pids[i], &status, 0); // halt parent process until child process terminates (PID, ref to status, no options)
+        printf("%d (child %d) exited with status %d\n", pids[i], i, WEXITSTATUS(status));
     }
 
     return 0;
