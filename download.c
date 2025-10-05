@@ -31,8 +31,8 @@ int main()
             continue;
 
         
-            char *newFileName = "fileX";
-            newFileName[0] = '0';
+            char newFileName[] = "fileX";
+            newFileName[4] = i+'0';
         
         if(!downloadToFile(links[i], newFileName, i))
         {
