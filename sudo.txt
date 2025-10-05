@@ -1,0 +1,36 @@
+main:
+    fork a load of times
+
+    if reader:
+        URLs = [3]
+        getNewURL(0, 1, 2)
+        wait for available downloader
+        if downloader:
+            sendURL
+        
+        if retrieve result:
+            editFileWithResult(index, result)
+            getNewURL(index)
+
+    if downloader:
+        wait for URL index
+        if URL:
+            download & save(URL)
+        return status to reader
+
+
+read:
+    get file
+    get data from file
+    put in URL array
+    return URL array
+
+download & save:
+    blah blah
+    return success
+
+editFileWithResult:
+    add character to start of line, so it gets ignored later
+
+    #: successful download
+    ~: unsuccessful download
