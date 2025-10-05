@@ -3,16 +3,16 @@
 
 char links[30][100];
 
-const char linksFile[] = "";
+const char linksFile[] = "filesToDownload.txt";
 
 int readLinks(char[]);
 
 int main() // curl DL code fromstackoverflow.com/questions/11471690/curl_h_no_such_file_or_directory
 {
-    if(!readLinks("filesToDownload.txt"))
+    if(!readLinks(linksFile))
     {
-        printf("READING FAILED! Exiting...\n");
-        return 0;
+        printf(stderr, "READING FAILED! Exiting...\n");
+        return 1;
     }
 
     CURL *curl;
@@ -24,7 +24,8 @@ int main() // curl DL code fromstackoverflow.com/questions/11471690/curl_h_no_su
     curl = curl_easy_init();
     if(!curl)
     {
-        return 0;
+        printf(stderr, "CURL INIT FAILED!");
+        return 1;
     }
 
     curl_easy_setopt(curl, CURLOPT_URL, links[0]);
