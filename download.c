@@ -68,7 +68,7 @@ int readLinks(char path[]) // file reading code from www.w3schools.com/c/c_files
 
 int writeToFile(const char *filename, const char *data)
 {
-    FILE *filePtr = fopen(filename, "w");
+    FILE *filePtr = fopen(filename, "w");//
     if(filePtr == NULL)
     {
         // no file!
