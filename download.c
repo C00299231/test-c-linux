@@ -64,3 +64,24 @@ int readLinks(char path[]) // file reading code from www.w3schools.com/c/c_files
 
     return 1;
 }
+
+int writeToFile(const char *filename, const char *data)
+{
+    FILE *filePtr = fopen(filename, "w");
+    if(filePtr == NULL)
+    {
+        // no file!
+        printf("\nUnable to open the specified file.\n");
+        return 0;
+    }
+    fputs(content, filePtr);
+    fclose(filePtr);
+    return 1; // success
+}
+
+const char getFullPath(const char *filename, const char *directory)
+{
+    char fullPath[200];
+    snprintf(fullPath, sizeof(fullPath), "%s/%s", directory, filename);
+    return fullPath;
+}
