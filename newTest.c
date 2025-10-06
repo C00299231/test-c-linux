@@ -43,9 +43,18 @@ int main()
             sleep(idx+1);
             printf("DOWNLOADER!\n");
             
+            while(1)
+            {
+                int bytesRead = read(pipefd[0], inBuffer, buffer_size-1);
+                printf("%s\n", inBuffer);
 
-            read(pipefd[0], inBuffer, buffer_size);
-            printf("%s\n", inBuffer);
+                if bytesRead == 0
+                {
+                    break;
+                }
+            }
+
+            printf("Child %d (PID %d) exiting...\n", idx, getpid());
             exit(EXIT_SUCCESS);
             
         }
@@ -68,6 +77,8 @@ int main()
 
         write(pipefd[1], url, buffer_size); // write to buffer for each child!
     }
+
+    close(pipefd[1]); // close write end of pipe
     
 
     for(int i = 0; i < max_pids; i++) // wait for each process to finish
