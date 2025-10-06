@@ -1,17 +1,29 @@
 #include <sys/types.h>
-#include <sys/wait.h>
+//#include <sys/wait.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <sys/mman.h>
+//#include <sys/mman.h>
 
-// first one will be reader, the rest downloaders
+// pipe code from https://www.geeksforgeeks.org/c/pipe-system-call/
+// file reading code from www.w3schools.com/c/c_files_read.php
+// curl DL code fromstackoverflow.com/questions/11471690/curl_h_no_such_file_or_directory
+
+// amount of parallel downloaders
 #define max_pids 4
+#define buffer_size 100
 
 int main()
 {
     int parentPid = getpid();
     pid_t pids[max_pids];
+
+    char inBuffer[buffer_size];
+    
+    // pipe stuff
+    int pipefd[2];
+
+    pipe(pipefd);
 
     printf("Parent PID: %d\n", getpid());
 
@@ -24,24 +36,25 @@ int main()
             printf("child %d failed to fork...\n", idx);
         }
         
-        if(pid == 0) // uninitialized value: means is child process
+        if(pid == 0) // -------------------------------- CHILD PROCESS
         {
-            if (idx == 0)
-            {
-                // child is reader! do reading stuff
-                printf("READER!\n");
-            }
-            else
-            {
-                // child is downloader! do downloading stuff
-                printf("DOWNLOADER!\n");
-            }
-
+            printf("DOWNLOADER!\n");
             
-            exit(EXIT_SUCCESS);
+
+            read(pipefd[0], inBuffer, buffer_size);
+            printf("%s\n", inBuffer);
+            
         }
-        else // parent process
+        else // ---------------------------------------- PARENT PROCESS
         {
+            printf("PARENT!");
+
+            for(int i = 0; i < max_pids; i++)
+            {
+                char *url = readURL(i);
+
+                write(pipefd[1], url, buffer_size);
+            }
             pids[idx] = pid;
         }
     }
@@ -54,4 +67,17 @@ int main()
     }
 
     return 0;
+}
+
+char readURL(int nextIndex)
+{
+    // read from input file
+
+    // get line at input
+
+    // if prefix, ignore and go to next
+
+    // if end of file, return NULL
+
+    return NULL;
 }

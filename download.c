@@ -98,7 +98,7 @@ int downloadToFile(const char *url, char *filename, int index) // curl DL code f
 
     // set curl options
     curl_easy_setopt(curl, CURLOPT_URL, url);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp); // find reference for writedata
 
     CURLcode res = curl_easy_perform(curl);
     fclose(fp);
