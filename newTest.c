@@ -29,10 +29,12 @@ int main()
             if (idx == 0)
             {
                 // child is reader! do reading stuff
+                printf("READER!\n");
             }
             else
             {
                 // child is downloader! do downloading stuff
+                printf("DOWNLOADER!\n");
             }
 
             
