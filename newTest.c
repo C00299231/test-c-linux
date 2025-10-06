@@ -40,6 +40,7 @@ int main()
         
         if(pid == 0) // -------------------------------- CHILD PROCESS
         {
+            close(pipefd[1]); // close write end of pipe
             sleep(idx+1);
             printf("DOWNLOADER!\n");
             
@@ -60,6 +61,7 @@ int main()
         }
         else // ---------------------------------------- PARENT PROCESS
         {
+            close(pipefd[0]); // close read end of pipe
             pids[idx] = pid;
         }
     }
