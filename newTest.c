@@ -1,9 +1,9 @@
 #include <sys/types.h>
-//#include <sys/wait.h>
+#include <sys/wait.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-//#include <sys/mman.h>
+#include <sys/mman.h>
 
 // pipe code from https://www.geeksforgeeks.org/c/pipe-system-call/
 // file reading code from www.w3schools.com/c/c_files_read.php
@@ -12,6 +12,8 @@
 // amount of parallel downloaders
 #define max_pids 4
 #define buffer_size 100
+
+char readURL(int);
 
 int main()
 {
@@ -38,32 +40,41 @@ int main()
         
         if(pid == 0) // -------------------------------- CHILD PROCESS
         {
+            sleep(idx+1);
             printf("DOWNLOADER!\n");
             
 
             read(pipefd[0], inBuffer, buffer_size);
             printf("%s\n", inBuffer);
+            exit(EXIT_SUCCESS);
             
         }
         else // ---------------------------------------- PARENT PROCESS
         {
-            printf("PARENT!");
-
-            for(int i = 0; i < max_pids; i++)
-            {
-                char *url = readURL(i);
-
-                write(pipefd[1], url, buffer_size);
-            }
             pids[idx] = pid;
         }
     }
+
+    printf("PARENT!\n\n");
+
+    for(int i = 0; i < max_pids; i++)
+    {
+        char* url = "test Thingy!!!!";
+
+        if(*url == '0') // no more valid URLs
+        {
+            break;
+        }
+
+        write(pipefd[1], url, buffer_size); // write to buffer for each child!
+    }
+    
 
     for(int i = 0; i < max_pids; i++) // wait for each process to finish
     {
         int status;
         waitpid(pids[i], &status, 0); // halt parent process until child process terminates (PID, ref to status, no options)
-        printf("%d (child %d) exited with status %d\n", pids[i], i, WEXITSTATUS(status));
+        printf("%d (child %d) exited with status %d\n\n", pids[i], i, WEXITSTATUS(status));
     }
 
     return 0;
@@ -79,5 +90,5 @@ char readURL(int nextIndex)
 
     // if end of file, return NULL
 
-    return NULL;
+    return '0';
 }
