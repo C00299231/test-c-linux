@@ -23,14 +23,21 @@ int main()
     char inBuffer[buffer_size];
     
     // pipe stuff
-    int pipefd[2];
-
-    pipe(pipefd);
+    int downPipes[max_pids][2];
+    int upPipes[max_pids][2];
+    
 
     printf("Parent PID: %d\n", getpid());
 
     for(int idx = 0; idx < max_pids; idx++) // create each child
     {
+        // each child should have its own pipes
+        int pipeDownStream[2];
+        int pipeUpStream[2];
+
+        pipe(pipeDownStream);
+        pipe(pipeUpStream);
+
         pid_t pid = fork();
 
         if(pid < 0) // failed child process
@@ -40,13 +47,13 @@ int main()
         
         if(pid == 0) // -------------------------------- CHILD PROCESS
         {
-            close(pipefd[1]); // close write end of pipe
+            close(pipeDownStream[1]); // close write end of pipe
             sleep(idx+1);
             printf("DOWNLOADER!\n");
             
             while(1)
             {
-                int bytesRead = read(pipefd[0], inBuffer, buffer_size-1);
+                int bytesRead = read(pipeDownStream[0], inBuffer, buffer_size-1);
                 printf("%s\n", inBuffer);
 
                 if(bytesRead <= 0)
@@ -61,7 +68,7 @@ int main()
         }
         else // ---------------------------------------- PARENT PROCESS
         {
-            close(pipefd[0]); // close read end of pipe
+            close(pipeDownStream[0]); // close read end of pipe
             pids[idx] = pid;
         }
     }
@@ -77,10 +84,10 @@ int main()
             break;
         }
 
-        write(pipefd[1], url, buffer_size); // write to buffer for each child!
+        write(pipeDownStream[1], url, buffer_size); // write to buffer for each child!
     }
 
-    close(pipefd[1]); // close write end of pipe
+    close(pipeDownStream[1]); // close write end of pipe
     
 
     for(int i = 0; i < max_pids; i++) // wait for each process to finish
