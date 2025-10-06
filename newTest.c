@@ -10,7 +10,7 @@
 // curl DL code fromstackoverflow.com/questions/11471690/curl_h_no_such_file_or_directory
 
 // amount of parallel downloaders
-#define max_pids 4
+#define max_pids 1
 #define buffer_size 100
 
 char readURL(int);
@@ -49,7 +49,7 @@ int main()
                 int bytesRead = read(pipefd[0], inBuffer, buffer_size-1);
                 printf("%s\n", inBuffer);
 
-                if bytesRead == 0
+                if(bytesRead <= 0)
                 {
                     break;
                 }
