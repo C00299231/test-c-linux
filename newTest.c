@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/mman.h>
+#include <curl/curl.h>
 
 // pipe code from https://www.geeksforgeeks.org/c/pipe-system-call/
 // file reading code from www.w3schools.com/c/c_files_read.php
