@@ -5,6 +5,8 @@
 #include <unistd.h>
 #include <sys/mman.h>
 #include <curl/curl.h>
+#include <stdbool.h>
+#include <string.h>
 
 // pipe code from https://www.geeksforgeeks.org/c/pipe-system-call/
 // file reading code from https://www.w3schools.com/c/c_files_read.php
@@ -40,8 +42,8 @@
 //              exit
 
 // amount of parallel downloaders
-#define max_pids 3
-#define buffer_size 100
+#define max_pids 1
+#define buffer_size 128
 #define path "filesToDownload.txt"
 
 char readURL(int);
@@ -69,6 +71,7 @@ int main()
         pipe(downPipes[idx]);
         pipe(upPipes[idx]);
 
+        fflush(stdout);
         pid_t pid = fork();
 
         if(pid < 0) // failed child process
@@ -79,8 +82,14 @@ int main()
         if(pid == 0) // CHILD PROCESS
         {
             close(downPipes[idx][1]); // close write end of pipe
-            sleep(idx+1);
+            close(upPipes[idx][0]); // close read end of pipe
             printf("DOWNLOADER!\n");
+
+            // first, write ready status
+            // child sends same character as URL writer for ready-success, or ready-failure
+            // ready no result, send 0
+
+            write(upPipes[idx][1], '0', 1);
             
             while(1) // child keeps going until write end of pipe is closed
             {
@@ -88,14 +97,29 @@ int main()
                 
                 printf("%s\n", inBuffer);
 
-                if(bytesRead == 0) // if pipe is closed
+                if(bytesRead == 0) // if down pipe is closed
                 {
-                    break;
+                    printf("Child %d (PID %d) exiting...\n", idx, getpid());
+                    exit(EXIT_SUCCESS);
+                }
+
+                if(bytesRead < 0) // no bytes yet
+                {
+                    sleep(1);
+                }
+
+                // bytes read is valid, inBuffer contains URL
+                int result = downloadToFile(inBuffer, "fileTest", 0);
+
+                if(result) // success
+                {
+                    write(upPipes[idx][1], '#', 1);
+                }
+                else
+                {
+                    write(upPipes[idx][1], '~', 1);
                 }
             }
-
-            printf("Child %d (PID %d) exiting...\n", idx, getpid());
-            exit(EXIT_SUCCESS);
             // end of child process
         }
         else // PARENT PROCESS
@@ -106,10 +130,13 @@ int main()
         }
     }
 
+    int URLindex = 0;
     //---------------------------------------------------PROCESSING LOOP:
-    while(1)
+    while(1) // still need to do something with read inBuffer from child...
     {
+
         int readyChild = -1;
+
         // check up pipes for ready children
         for(int i = 0; i < max_pids; i++)
         {
@@ -118,14 +145,17 @@ int main()
             if(bytesRead > 0) // if ready child
             {
                 readyChild = i;
-                break;
+                i = max_pids;
             }
+
+            // inbuffer contains 
         }
     
+        // if readyChild is valid index
         if(readyChild != -1)
         {
             // child is ready
-            char* url = "test URL";
+            char* url = readURL(URLindex);
 
             if(*url == '0') // no more valid URLs
             {
@@ -138,6 +168,7 @@ int main()
         {
             // do nothing...
         }
+        URLindex++;
     }
 
     // program is done, clean up and exit
@@ -167,7 +198,7 @@ char readURL(int nextIndex)
     if(filePtr == NULL){return ';';} // failure escape char
 
     int index = 0;
-    while(true)
+    while(1)
     {
         if(fgets(link, buffer_size, filePtr)) // fgets code: https://en.cppreference.com/w/c/io/fgets
         {
@@ -204,20 +235,27 @@ int updateURL(int index, bool success)
     FILE *filePtr = fopen(path, "r");
     FILE *temp = fopen("temp.txt", "w");
 
+    char prepend = (success) ? '#' : '~';
+
     char line[buffer_size];
+
+    char newLine[buffer_size];
 
     while (fgets(line, sizeof(line), filePtr))
     {
         if (strcmp(line, "target line\n") == 0)
-            fputs("this is the new (longer or shorter) line\n", temp);
+        {
+            snprintf(newLine, buffer_size, "%c%s", prepend, line);
+            fputs(newLine, temp);
+        }
         else
             fputs(line, temp);
     }
 
-    fclose(f);
+    fclose(filePtr);
     fclose(temp);
     rename("temp.txt", path);
-    }
+}
 
 int downloadToFile(const char *url, char *filename, int index)
 {
