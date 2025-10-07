@@ -7,8 +7,10 @@
 #include <curl/curl.h>
 
 // pipe code from https://www.geeksforgeeks.org/c/pipe-system-call/
-// file reading code from www.w3schools.com/c/c_files_read.php
-// curl DL code fromstackoverflow.com/questions/11471690/curl_h_no_such_file_or_directory
+// file reading code from https://www.w3schools.com/c/c_files_read.php
+// curl DL code from https://www.stackoverflow.com/questions/11471690/curl_h_no_such_file_or_directory
+// fgets code from https://en.cppreference.com/w/c/io/fgets
+// overwrite file line code from https://stackoverflow.com/questions/33699915/how-to-read-and-edit-specific-line-of-a-text-file-in-c
 
 // PROGRAM STRUCTURE
 // PARENT:
@@ -40,6 +42,7 @@
 // amount of parallel downloaders
 #define max_pids 3
 #define buffer_size 100
+#define path "filesToDownload.txt"
 
 char readURL(int);
 int downloadToFile(const char *url, char *filename, int index);
@@ -157,16 +160,64 @@ int main()
 
 char readURL(int nextIndex)
 {
-    // read from input file
+    FILE *filePtr = fopen(path, "r");
 
-    // get line at input
+    char link[buffer_size];
 
-    // if prefix, ignore and go to next
+    if(filePtr == NULL){return ';';} // failure escape char
 
-    // if end of file, return NULL
+    int index = 0;
+    while(true)
+    {
+        if(fgets(link, buffer_size, filePtr)) // fgets code: https://en.cppreference.com/w/c/io/fgets
+        {
+            // current line saved to link
+            // only increment if no prefix
 
-    return '0';
+            if(link[0] == '#') // downloaded, success
+            {
+                continue;
+            }
+            if(link[0] == '~') // downloaded, failure
+            {
+                continue;
+            }
+
+            if(index == nextIndex) // the line we want
+            {
+                fclose(filePtr);
+                return link;
+            }
+
+            index++;
+        }
+        else // no more lines in file
+        {
+            fclose(filePtr);
+            return '|'; // EOF escape char
+        }
+    }
 }
+
+int updateURL(int index, bool success)
+{
+    FILE *filePtr = fopen(path, "r");
+    FILE *temp = fopen("temp.txt", "w");
+
+    char line[buffer_size];
+
+    while (fgets(line, sizeof(line), filePtr))
+    {
+        if (strcmp(line, "target line\n") == 0)
+            fputs("this is the new (longer or shorter) line\n", temp);
+        else
+            fputs(line, temp);
+    }
+
+    fclose(f);
+    fclose(temp);
+    rename("temp.txt", path);
+    }
 
 int downloadToFile(const char *url, char *filename, int index)
 {
