@@ -106,8 +106,9 @@ int main()
                     exit(EXIT_SUCCESS);
                 }
 
-                if(bytesRead < 0) // no bytes yet
+                if(bytesRead < 0) // error
                 {
+                    
                     sleep(1);
                 }
 
