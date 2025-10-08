@@ -47,7 +47,7 @@
 #define buffer_size 128
 #define path "filesToDownload.txt"
 
-char readURL(int);
+char* readURL(int);
 int downloadToFile(const char *url, char *filename, int index);
 
 int main()
@@ -56,7 +56,7 @@ int main()
     pid_t pids[max_pids];
 
     char inBuffer[buffer_size];
-    char readyBuffer;
+    char *readyBuffer;
     
     // pipe stuff
     int downPipes[max_pids][2];
@@ -101,7 +101,11 @@ int main()
             {
                 int bytesRead = read(downPipes[idx][0], inBuffer, buffer_size-1); // put pipe data into inBuffer, status into bytesRead
                 
-                printf("%s\n", inBuffer);
+                if(bytesRead > 0)
+                {
+                    inBuffer[bytesRead] = '\0';
+                    printf("RECEIVED URL: %s\n", inBuffer);
+                }
 
                 if(bytesRead == 0) // if down pipe is closed
                 {
@@ -120,11 +124,13 @@ int main()
 
                 if(result) // success
                 {
-                    write(upPipes[idx][1], '#', 1);
+                    send = '#';
+                    write(upPipes[idx][1], &send, 1);
                 }
                 else
                 {
-                    write(upPipes[idx][1], '~', 1);
+                    send = '#';
+                    write(upPipes[idx][1], &send, 1);
                 }
             }
             // end of child process
@@ -206,11 +212,11 @@ int main()
     return 0;
 }
 
-char readURL(int nextIndex)
+char* readURL(int nextIndex)
 {
     FILE *filePtr = fopen(path, "r");
 
-    char link[buffer_size];
+    static char link[buffer_size];
 
     if(filePtr == NULL){return ';';} // failure escape char
 
