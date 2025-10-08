@@ -22,7 +22,7 @@
 //          fork child
 
 //      PROCESSING LOOP:
-//          read from up pipe of children to get next ready child
+//          read from up pipe of children to get next ready child (BLOCKING)
 //          if ready child:
 //              read next URL from file
 //              write URL to down pipe of child
@@ -32,15 +32,15 @@
 //              wait for child to finish
 
 // CHILD:
+//      send ready up pipe
 //      LOOP:
-//          read from down pipe for URL
+//          read from down pipe for URL (BLOCKING)
 //          if URL:
 //              download URL
 //              write to up pipe result
-//          if no URL:
-//              wait
 //          if pipe closed:
 //              exit
+
 
 // amount of parallel downloaders
 #define max_pids 1
@@ -56,7 +56,7 @@ int main()
     pid_t pids[max_pids];
 
     char inBuffer[buffer_size];
-    char *readyBuffer;
+    char readyBuffer;
     
     // pipe stuff
     int downPipes[max_pids][2];
@@ -72,10 +72,9 @@ int main()
         // create pipes
         pipe(downPipes[idx]);
         pipe(upPipes[idx]);
-        fcntl(upPipes[idx][0], F_SETFL, O_NONBLOCK); // make upPipes non-blocking
-        fcntl(downPipes[idx][0], F_SETFL, O_NONBLOCK);
+        //fcntl(upPipes[idx][0], F_SETFL, O_NONBLOCK); // make upPipes non-blocking
+        //fcntl(downPipes[idx][0], F_SETFL, O_NONBLOCK);
 
-        fflush(stdout);
         pid_t pid = fork();
 
         if(pid < 0) // failed child process
@@ -85,6 +84,7 @@ int main()
         
         if(pid == 0) // CHILD PROCESS
         {
+            sleep(1);
             close(downPipes[idx][1]); // close write end of pipe
             close(upPipes[idx][0]); // close read end of pipe
             printf("DOWNLOADER!\n");
@@ -100,7 +100,7 @@ int main()
             while(1) // child keeps going until write end of pipe is closed
             {
                 int bytesRead = read(downPipes[idx][0], inBuffer, buffer_size-1); // put pipe data into inBuffer, status into bytesRead
-                
+                printf("BYTES READ: %d, BUFFER: %s\n", bytesRead, inBuffer);
                 if(bytesRead > 0)
                 {
                     inBuffer[bytesRead] = '\0';
@@ -129,7 +129,7 @@ int main()
                 }
                 else
                 {
-                    send = '#';
+                    send = '~';
                     write(upPipes[idx][1], &send, 1);
                 }
             }
@@ -139,6 +139,7 @@ int main()
         {
             printf("PARENT!\n\n");
             close(downPipes[idx][0]); // close read end of pipe
+            close(upPipes[idx][1]);
             pids[idx] = pid;
         }
     }
@@ -154,7 +155,7 @@ int main()
         for(int i = 0; i < max_pids; i++)
         {
             // read from up pipe of children to get next ready child
-            int bytesRead = read(upPipes[i][0], readyBuffer, 1); // put pipe data into inBuffer, status into bytesRead
+            int bytesRead = read(upPipes[i][0], &readyBuffer, 1); // put pipe data into inBuffer, status into bytesRead
             
             printf("BYTES READ: %d, BUFFER: %s\n", bytesRead, readyBuffer);
             fflush(stdout);
@@ -165,7 +166,6 @@ int main()
             }
             else
             {
-                sleep(1);
                 continue;
             }
 
@@ -184,6 +184,9 @@ int main()
                 fflush(stdout);
                 break; // end program
             }
+            printf("URL: %s", url);
+            fflush(stdout);
+
 
             write(downPipes[readyChild][1], url, buffer_size); // write to buffer for ready child
             URLindex++;
@@ -193,6 +196,9 @@ int main()
             // do nothing...
         }
     }
+
+    printf("LOOP DONE.\n");
+    fflush(stdout);
 
     // program is done, clean up and exit
 
