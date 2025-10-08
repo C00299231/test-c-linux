@@ -56,7 +56,7 @@ int main()
     pid_t pids[max_pids];
 
     char inBuffer[buffer_size];
-    char readyBuffer;
+    char *readyBuffer;
     
     // pipe stuff
     int downPipes[max_pids][2];
