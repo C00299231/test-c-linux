@@ -9,49 +9,31 @@
 #include <string.h>
 #include <fcntl.h>
 
+// NAME:    Adam Noonan
+// ID:      C00299231
+// DATE:    08-10-2025
+// PROGRAM: Parallel file downloader
+
 // pipe code from https://www.geeksforgeeks.org/c/pipe-system-call/
 // file reading code from https://www.w3schools.com/c/c_files_read.php
 // curl DL code from https://www.stackoverflow.com/questions/11471690/curl_h_no_such_file_or_directory
 // fgets code from https://en.cppreference.com/w/c/io/fgets
 // overwrite file line code from https://stackoverflow.com/questions/33699915/how-to-read-and-edit-specific-line-of-a-text-file-in-c
 
-// PROGRAM STRUCTURE
-// PARENT:
-//      CREATION LOOP:
-//          create pipes
-//          fork child
+// amount of downloader processes
+#define max_pids 3
 
-//      PROCESSING LOOP:
-//          read from up pipe of children to get next ready child (BLOCKING)
-//          if ready child:
-//              read next URL from file
-//              write URL to down pipe of child
-//              if no more URLs:
-//                  end program
-//          if no ready child:
-//              wait for child to finish
-
-// CHILD:
-//      send ready up pipe
-//      LOOP:
-//          read from down pipe for URL (BLOCKING)
-//          if URL:
-//              download URL
-//              write to up pipe result
-//          if pipe closed:
-//              exit
-
-
-// amount of parallel downloaders
-#define max_pids 2
+// max URL size (higher may reduce performance)
 #define buffer_size 128
+
+// file where URLs are stored
 #define path "filesToDownload.txt"
 
-int nextFile = 0;
 
+// init functions
 char* readURL(int);
-int downloadToFile(char *url, char *filename, int index);
-char* nameFromURL(char*, char*);
+int downloadToFile(char *url, char *filename);
+char* nameFromURL(char*);
 
 int main()
 {
@@ -64,6 +46,8 @@ int main()
     // pipe stuff
     int downPipes[max_pids][2];
     int upPipes[max_pids][2];
+
+    printf("\n- AUTO FILE DOWNLOADER -\n\n");
     
 
     printf("Parent PID: %d\n", getpid());
@@ -76,7 +60,6 @@ int main()
         pipe(downPipes[idx]);
         pipe(upPipes[idx]);
         fcntl(upPipes[idx][0], F_SETFL, O_NONBLOCK); // make upPipes non-blocking
-        //fcntl(downPipes[idx][0], F_SETFL, O_NONBLOCK);
 
         pid_t pid = fork();
 
@@ -90,12 +73,12 @@ int main()
             //sleep(1);
             close(downPipes[idx][1]); // close write end of down pipe
             close(upPipes[idx][0]); // close read end of up pipe
-            printf("DOWNLOADER!\n");
+            printf("Child initialized!\n");
 
             // first, write ready status
             // child sends same character as URL writer for ready-success, or ready-failure
+            
             // ready w/ no result, send r
-
             char send = 'r';
 
             write(upPipes[idx][1], &send, 1);
@@ -104,7 +87,7 @@ int main()
             {
                 int bytesRead = read(downPipes[idx][0], inBuffer, buffer_size-1); // get pipe data into inBuffer, status into bytesRead
 
-                printf("fromParent %d BYTES READ: %d, BUFFER: %s\n", idx, bytesRead, inBuffer);
+                printf("child %d - bytes read from parent: %d, buffer contents: %s\n", idx, bytesRead, inBuffer);
 
                 if(bytesRead > 0)
                 {
@@ -118,7 +101,7 @@ int main()
 
                 if(bytesRead == 0) // if down pipe is closed
                 {
-                    printf("PIPE CLOSED! Child %d (PID %d) exiting...\n", idx, getpid());
+                    printf("Pipe closed! Child %d (PID %d) exiting...\n", idx, getpid());
                     close(downPipes[idx][0]);
                     close(upPipes[idx][1]);
                     exit(EXIT_SUCCESS);
@@ -131,10 +114,7 @@ int main()
                 }
 
                 // bytes read is valid, inBuffer contains URL
-                nextFile++;
-                int result = downloadToFile(inBuffer, "fileTest.txt", nextFile);
-
-                printf("child %d download result: %d\n", idx, result);
+                int result = downloadToFile(inBuffer, "fileTest.txt");
 
                 if(result) // success
                 {
@@ -151,7 +131,6 @@ int main()
         }
         else // PARENT PROCESS
         {
-            printf("PARENT!\n\n");
             close(downPipes[idx][0]); // close read end of pipe
             close(upPipes[idx][1]);
             pids[idx] = pid;
@@ -163,7 +142,6 @@ int main()
     //---------------------------------------------------PROCESSING LOOP:
     while(1)
     {
-        //printf("\n\nPROCESS LOOP\n\n");
         fflush(stdout);
         int readyChild = -1;
 
@@ -189,35 +167,30 @@ int main()
         // if readyChild is valid index
         if(readyChild != -1)
         {
-            printf("CHILD %d IS READY! WE NEED TO SEND URL %d!\n", readyChild, URLindex);
+            printf("Child %d is ready for a URL! sending %d...\n", readyChild, URLindex);
             fflush(stdout);
             // child is ready
             char *url = readURL(URLindex);
 
             if(url == '|') // no more valid URLs
             {
-                printf("NO MORE URLS!");
+                printf("\nParent: No more URLs!\n\n");
                 fflush(stdout);
                 break; // end program
             }
 
-            printf("URL RECEIVED FROM LIST: %s\n", url);
             fflush(stdout);
             
             write(downPipes[readyChild][1], url, buffer_size); // write to buffer for ready child
             URLindex++;
             readyChild = -1;
-            //close(downPipes[readyChild][1]); // remove after fixed
         }
         else
         {
             // do nothing...
-            //printf("NO READY CHILD...\n");
-            //fflush(stdout);
         }
     }
 
-    printf("LOOP DONE.\n");
     fflush(stdout);
 
     // program is done, clean up and exit
@@ -235,7 +208,7 @@ int main()
         printf("%d (child %d) exited with status %d\n\n", pids[i], i, WEXITSTATUS(status));
     }
 
-    printf("PARENT EXITING...\n");
+    printf("Parent exiting program...\n");
     return 0;
 }
 
@@ -256,20 +229,16 @@ char* readURL(int nextIndex)
     {
         if(fgets(url, buffer_size, filePtr)) // fgets code: https://en.cppreference.com/w/c/io/fgets
         {
-            // current line saved to link
-            // only increment if no prefix
-
-            //for(int i = 0; i < buffer_size; i++)
-            //{
-            //    if(url[i] == '\n')
-            ///    {
-            //        url[i] = '\0';
-            //    }
-            //}
-
-            //printf("URL FOUND at index %d\n", index);
-            //printf("NEXT INDEX: %d\n", nextIndex);
             fflush(stdout);
+
+            // replace newline
+            for(int i = 0; i < buffer_size; i++)
+            {
+                if(url[i] == '\n')
+                {
+                    url[i] = '\0';
+                }
+            }
 
             if(url[0] == '#') // downloaded, success
             {
@@ -282,7 +251,6 @@ char* readURL(int nextIndex)
 
             if(index == nextIndex) // the line we want
             {
-                //printf("CORRECT URL AT %d: %s\n", index, url);
                 fflush(stdout);
                 fclose(filePtr);
                 return url;
@@ -325,27 +293,16 @@ int updateURL(int index, bool success)
     rename("temp.txt", path);
 }
 
-int downloadToFile(char *url, char *filename, int index)
+int downloadToFile(char *url, char *filename)
 {
-
     char* name;
-    name = nameFromURL(url, name);
-    //name[4] = index + '0';
+    name = nameFromURL(url);
+    printf("Attempting download of %s.\n", name);
 
-    if(url[0] == '\0')
+    if(url[0] == '\0') // empty URL
     {
-        printf("NO DL of %s\n", url);
         return 0;
     }
-    // replace newline
-    for(int i = 0; i < buffer_size; i++)
-    {
-        if(url[i] == '\n')
-        {
-            url[i] = '\0';
-        }
-    }
-    printf("TRYING TO DOWNLOAD: %s to %s\n", url, name);
     
     // init curl and file
     CURL *curl = curl_easy_init();
@@ -377,19 +334,18 @@ int downloadToFile(char *url, char *filename, int index)
         curl_easy_cleanup(curl);
         return 0;
     }
-    printf("SUCCESSFUL DOWNLOAD of %s!\n", name);
+    printf("Successful download of %s!\n\n", name);
     curl_easy_cleanup(curl);
     return 1; // success
 }
 
-char* nameFromURL(char* url, char* newName) // https://www.geeksforgeeks.org/c/get-a-substring-in-c/
+char* nameFromURL(char* url) // edited from https://www.geeksforgeeks.org/c/get-a-substring-in-c/
 {
+    static char newName[buffer_size];
     if(url[0] == '\0')
     {
-        return 'e';
+        return "e";
     }
-
-    // step one, find position of last slash
 
     int charPos;
 
@@ -397,14 +353,14 @@ char* nameFromURL(char* url, char* newName) // https://www.geeksforgeeks.org/c/g
     {
         if(url[i] == '/')
         {
-            charPos = i;
+            charPos = i+1;
             break;
         }
     }
 
+    strncpy(&newName, url + charPos, buffer_size-charPos);
 
-    strncpy(newName, url + charPos, buffer_size-charPos);
 
-    return newName;
+    return &newName;
 
 }

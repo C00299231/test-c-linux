@@ -1,5 +1,5 @@
 - parent child communication        DONE
-- read URLs from file               ?
+- read URLs from file               DONE
 - download file from URL            DONE
-- processes wait for information    x
+- processes wait for information    DONE
 - write result to file              x
