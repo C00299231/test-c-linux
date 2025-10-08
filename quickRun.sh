@@ -1,2 +1,2 @@
-gcc -o program program.c -lcurl
+gcc -o program program.c -lcurl -w
 ./program
