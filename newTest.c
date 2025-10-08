@@ -7,6 +7,7 @@
 #include <curl/curl.h>
 #include <stdbool.h>
 #include <string.h>
+#include <fcntl.h>
 
 // pipe code from https://www.geeksforgeeks.org/c/pipe-system-call/
 // file reading code from https://www.w3schools.com/c/c_files_read.php
@@ -55,6 +56,7 @@ int main()
     pid_t pids[max_pids];
 
     char inBuffer[buffer_size];
+    char readyBuffer;
     
     // pipe stuff
     int downPipes[max_pids][2];
@@ -70,7 +72,8 @@ int main()
         // create pipes
         pipe(downPipes[idx]);
         pipe(upPipes[idx]);
-        fcntl(upPipes[idx][0], F_SETFL, O_NONBLOCK);
+        fcntl(upPipes[idx][0], F_SETFL, O_NONBLOCK); // make upPipes non-blocking
+        fcntl(downPipes[idx][0], F_SETFL, O_NONBLOCK);
 
         fflush(stdout);
         pid_t pid = fork();
@@ -90,9 +93,9 @@ int main()
             // child sends same character as URL writer for ready-success, or ready-failure
             // ready no result, send 0
 
-            char* send = '0';
+            char send = '0';
 
-            write(upPipes[idx][1], send, 1);
+            write(upPipes[idx][1], &send, 1);
             
             while(1) // child keeps going until write end of pipe is closed
             {
@@ -108,6 +111,7 @@ int main()
 
                 if(bytesRead < 0) // no bytes yet
                 {
+                    perror("read");
                     sleep(1);
                 }
 
@@ -136,21 +140,17 @@ int main()
     int URLindex = 0;
     
     //---------------------------------------------------PROCESSING LOOP:
-    while(1) // still need to do something with read inBuffer from child...
+    while(1) // PROBLEM: Never getting ready child
     {
-
-        
-
         int readyChild = -1;
 
         // check up pipes for ready children
         for(int i = 0; i < max_pids; i++)
         {
-            printf("NO READY CHILDREN!\n");
-            fflush(stdout);
             // read from up pipe of children to get next ready child
-            int bytesRead = read(upPipes[i][0], inBuffer, buffer_size-1); // put pipe data into inBuffer, status into bytesRead
-            printf("READING BYTES");
+            int bytesRead = read(upPipes[i][0], readyBuffer, 1); // put pipe data into inBuffer, status into bytesRead
+            
+            printf("BYTES READ: %d, BUFFER: %s\n", bytesRead, readyBuffer);
             fflush(stdout);
             if(bytesRead > 0) // if ready child
             {
@@ -159,14 +159,12 @@ int main()
             }
             else
             {
-                
+                sleep(1);
+                continue;
             }
 
             // inbuffer contains 
         }
-
-        printf("LOOP FINISHED!\n");
-        fflush(stdout);
     
         // if readyChild is valid index
         if(readyChild != -1)
@@ -174,7 +172,7 @@ int main()
             // child is ready
             char* url = readURL(URLindex);
 
-            if(*url == '0') // no more valid URLs
+            if(*url == '|') // no more valid URLs
             {
                 printf("NO MORE URLS!");
                 fflush(stdout);
@@ -182,12 +180,12 @@ int main()
             }
 
             write(downPipes[readyChild][1], url, buffer_size); // write to buffer for ready child
+            URLindex++;
         }
         else
         {
             // do nothing...
         }
-        URLindex++;
     }
 
     // program is done, clean up and exit
