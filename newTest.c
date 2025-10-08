@@ -70,6 +70,7 @@ int main()
         // create pipes
         pipe(downPipes[idx]);
         pipe(upPipes[idx]);
+        fcntl(upPipes[idx][0], F_SETFL, O_NONBLOCK);
 
         fflush(stdout);
         pid_t pid = fork();
