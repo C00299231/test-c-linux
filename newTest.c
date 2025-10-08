@@ -157,7 +157,7 @@ int main()
             // read from up pipe of children to get next ready child
             int bytesRead = read(upPipes[i][0], &readyBuffer, 1); // put pipe data into inBuffer, status into bytesRead
             
-            printf("BYTES READ: %d, BUFFER: %s\n", bytesRead, readyBuffer);
+            printf("BYTES READ: %d, BUFFER: %c\n", bytesRead, readyBuffer);
             fflush(stdout);
             if(bytesRead > 0) // if ready child
             {
