@@ -89,7 +89,9 @@ int main()
             // child sends same character as URL writer for ready-success, or ready-failure
             // ready no result, send 0
 
-            write(upPipes[idx][1], '0', 1);
+            char* send = '0';
+
+            write(upPipes[idx][1], send, 1);
             
             while(1) // child keeps going until write end of pipe is closed
             {
@@ -131,25 +133,39 @@ int main()
     }
 
     int URLindex = 0;
+    
     //---------------------------------------------------PROCESSING LOOP:
     while(1) // still need to do something with read inBuffer from child...
     {
+
+        
 
         int readyChild = -1;
 
         // check up pipes for ready children
         for(int i = 0; i < max_pids; i++)
         {
+            printf("NO READY CHILDREN!\n");
+            fflush(stdout);
             // read from up pipe of children to get next ready child
             int bytesRead = read(upPipes[i][0], inBuffer, buffer_size-1); // put pipe data into inBuffer, status into bytesRead
+            printf("READING BYTES");
+            fflush(stdout);
             if(bytesRead > 0) // if ready child
             {
                 readyChild = i;
                 i = max_pids;
             }
+            else
+            {
+                
+            }
 
             // inbuffer contains 
         }
+
+        printf("LOOP FINISHED!\n");
+        fflush(stdout);
     
         // if readyChild is valid index
         if(readyChild != -1)
@@ -159,6 +175,8 @@ int main()
 
             if(*url == '0') // no more valid URLs
             {
+                printf("NO MORE URLS!");
+                fflush(stdout);
                 break; // end program
             }
 
