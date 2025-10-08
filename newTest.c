@@ -48,7 +48,7 @@
 #define path "filesToDownload.txt"
 
 char* readURL(int);
-int downloadToFile(const char *url, char *filename, int index);
+int downloadToFile(char *url, char *filename, int index);
 
 int main()
 {
@@ -120,7 +120,7 @@ int main()
                 }
 
                 // bytes read is valid, inBuffer contains URL
-                int result = downloadToFile(inBuffer, "fileTest", 0);
+                int result = downloadToFile(inBuffer, "fileTest.txt", 0);
 
                 if(result) // success
                 {
@@ -147,7 +147,7 @@ int main()
     int URLindex = 0;
     
     //---------------------------------------------------PROCESSING LOOP:
-    while(1) // PROBLEM: Never getting ready child
+    while(1)
     {
         int readyChild = -1;
 
@@ -157,7 +157,7 @@ int main()
             // read from up pipe of children to get next ready child
             int bytesRead = read(upPipes[i][0], &readyBuffer, 1); // put pipe data into inBuffer, status into bytesRead
             
-            printf("BYTES READ: %d, BUFFER: %c\n", bytesRead, readyBuffer);
+            printf("CHILD BYTES READ: %d, BUFFER: %c\n", bytesRead, readyBuffer);
             fflush(stdout);
             if(bytesRead > 0) // if ready child
             {
@@ -286,8 +286,18 @@ int updateURL(int index, bool success)
     rename("temp.txt", path);
 }
 
-int downloadToFile(const char *url, char *filename, int index)
+int downloadToFile(char *url, char *filename, int index)
 {
+    // replace newline
+    for(int i = 0; i < buffer_size; i++)
+    {
+        if(url[i] == '\n')
+        {
+            url[i] = '\0';
+        }
+    }
+
+    printf("TRYING TO DOWNLOAD: -=%s=- to %s\n", url, filename);
     // init curl and file
     CURL *curl = curl_easy_init();
     FILE *fp = fopen(filename, "wb");
@@ -307,8 +317,9 @@ int downloadToFile(const char *url, char *filename, int index)
     // set curl options
     curl_easy_setopt(curl, CURLOPT_URL, url);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp); // find reference for writedata
-
+    
     CURLcode res = curl_easy_perform(curl);
+    fflush(fp);
     fclose(fp);
 
     // more errors
