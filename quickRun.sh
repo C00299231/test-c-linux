@@ -1,2 +1,2 @@
-gcc -o newTest newTest.c -lcurl
-./newTest
+gcc -o program program.c -lcurl -w
+./program
