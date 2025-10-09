@@ -14,21 +14,22 @@
 // DATE:    08-10-2025
 // PROGRAM: Parallel file downloader
 
+
+// NOTE: CHILD PROCESSES WRITE DL RESULT BACK TO PARENT, BUT RESULT IS CURRENTLY UNUSED
+
 // pipe code from https://www.geeksforgeeks.org/c/pipe-system-call/
 // file reading code from https://www.w3schools.com/c/c_files_read.php
 // curl DL code from https://www.stackoverflow.com/questions/11471690/curl_h_no_such_file_or_directory
 // fgets code from https://en.cppreference.com/w/c/io/fgets
-// overwrite file line code from https://stackoverflow.com/questions/33699915/how-to-read-and-edit-specific-line-of-a-text-file-in-c
 
 // amount of downloader processes
 #define max_pids 3
 
-// max URL size (higher may reduce performance)
+// max URL size (higher may reduce performance, but ensure it's higher than longest URL in filesToDownload.txt)
 #define buffer_size 128
 
 // file where URLs are stored
 #define path "filesToDownload.txt"
-
 
 // init functions
 char* readURL(int);
@@ -264,33 +265,6 @@ char* readURL(int nextIndex)
             return '|'; // EOF escape char
         }
     }
-}
-
-int updateURL(int index, bool success)
-{
-    FILE *filePtr = fopen(path, "r");
-    FILE *temp = fopen("temp.txt", "w");
-
-    char prepend = (success) ? '#' : '~';
-
-    char line[buffer_size];
-
-    char newLine[buffer_size];
-
-    while (fgets(line, sizeof(line), filePtr))
-    {
-        if (strcmp(line, "target line\n") == 0)
-        {
-            snprintf(newLine, buffer_size, "%c%s", prepend, line);
-            fputs(newLine, temp);
-        }
-        else
-            fputs(line, temp);
-    }
-
-    fclose(filePtr);
-    fclose(temp);
-    rename("temp.txt", path);
 }
 
 int downloadToFile(char *url, char *filename)

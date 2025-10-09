@@ -60,3 +60,31 @@ editFileWithResult:
 //              write to up pipe result
 //          if pipe closed:
 //              exit
+
+UNUSED OVERWRITE CODE:
+int updateURL(int index, bool success) // overwrite file line code from https://stackoverflow.com/questions/33699915/how-to-read-and-edit-specific-line-of-a-text-file-in-c
+{
+    FILE *filePtr = fopen(path, "r");
+    FILE *temp = fopen("temp.txt", "w");
+
+    char prepend = (success) ? '#' : '~';
+
+    char line[buffer_size];
+
+    char newLine[buffer_size];
+
+    while (fgets(line, sizeof(line), filePtr))
+    {
+        if (strcmp(line, "target line\n") == 0)
+        {
+            snprintf(newLine, buffer_size, "%c%s", prepend, line);
+            fputs(newLine, temp);
+        }
+        else
+            fputs(line, temp);
+    }
+
+    fclose(filePtr);
+    fclose(temp);
+    rename("temp.txt", path);
+}
