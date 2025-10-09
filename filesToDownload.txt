@@ -1,6 +1,6 @@
+https://raw.githubusercontent.com/C00299231/dummyFiles/refs/heads/main/imgs/hiRezImg.png
 https://raw.githubusercontent.com/C00299231/dummyFiles/refs/heads/main/imgs/boat.png
 https://raw.githubusercontent.com/C00299231/dummyFiles/refs/heads/main/imgs/cat.png
 https://raw.githubusercontent.com/C00299231/dummyFiles/refs/heads/main/imgs/face.png
 https://raw.githubusercontent.com/C00299231/dummyFiles/refs/heads/main/imgs/folks.png
 https://raw.githubusercontent.com/C00299231/dummyFiles/refs/heads/main/imgs/sun.png
-https://raw.githubusercontent.com/C00299231/dummyFiles/refs/heads/main/imgs/hirezimg.png
