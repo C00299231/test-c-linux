@@ -1,0 +1,90 @@
+main:
+    fork a load of times
+
+    if reader:
+        URLs = [3]
+        getNewURL(0, 1, 2)
+        wait for available downloader
+        if downloader:
+            sendURL
+        
+        if retrieve result:
+            editFileWithResult(index, result)
+            getNewURL(index)
+
+    if downloader:
+        wait for URL index
+        if URL:
+            download & save(URL)
+        return status to reader
+
+
+read:
+    get file
+    get data from file
+    put in URL array
+    return URL array
+
+download & save:
+    blah blah
+    return success
+
+editFileWithResult:
+    add character to start of line, so it gets ignored later
+
+    #: successful download
+    ~: unsuccessful download
+
+// PROGRAM STRUCTURE
+// PARENT:
+//      CREATION LOOP:
+//          create pipes
+//          fork child
+
+//      PROCESSING LOOP:
+//          read from up pipe of children to get next ready child (BLOCKING)
+//          if ready child:
+//              read next URL from file
+//              write URL to down pipe of child
+//              if no more URLs:
+//                  end program
+//          if no ready child:
+//              wait for child to finish
+
+// CHILD:
+//      send ready up pipe
+//      LOOP:
+//          read from down pipe for URL (BLOCKING)
+//          if URL:
+//              download URL
+//              write to up pipe result
+//          if pipe closed:
+//              exit
+
+UNUSED OVERWRITE CODE:
+int updateURL(int index, bool success) // overwrite file line code from https://stackoverflow.com/questions/33699915/how-to-read-and-edit-specific-line-of-a-text-file-in-c
+{
+    FILE *filePtr = fopen(path, "r");
+    FILE *temp = fopen("temp.txt", "w");
+
+    char prepend = (success) ? '#' : '~';
+
+    char line[buffer_size];
+
+    char newLine[buffer_size];
+
+    while (fgets(line, sizeof(line), filePtr))
+    {
+        if (strcmp(line, "target line\n") == 0)
+        {
+            snprintf(newLine, buffer_size, "%c%s", prepend, line);
+            fputs(newLine, temp);
+        }
+        else
+            fputs(line, temp);
+    }
+
+    fclose(filePtr);
+    fclose(temp);
+    rename("temp.txt", path);
+}
