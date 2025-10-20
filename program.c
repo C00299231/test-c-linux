@@ -11,16 +11,11 @@
 
 // NAME:    Adam Noonan
 // ID:      C00299231
-// DATE:    08-10-2025
+// DATE:    20-10-2025
 // PROGRAM: Parallel file downloader
 
 
 // NOTE: CHILD PROCESSES WRITE DL RESULT BACK TO PARENT, BUT RESULT IS CURRENTLY UNUSED
-
-// pipe code from https://www.geeksforgeeks.org/c/pipe-system-call/
-// file reading code from https://www.w3schools.com/c/c_files_read.php
-// curl DL code from https://www.stackoverflow.com/questions/11471690/curl_h_no_such_file_or_directory
-// fgets code from https://en.cppreference.com/w/c/io/fgets
 
 // amount of downloader processes
 #define max_pids 3
@@ -50,18 +45,18 @@ int main()
 
     printf("\n- AUTO FILE DOWNLOADER -\n\n");
     
-
     printf("Parent PID: %d\n", getpid());
 
     //---------------------------------------------------CREATION LOOP:
     for(int idx = 0; idx < max_pids; idx++) // create each child
     {
-
         // create pipes
+        // pipe code from https://www.geeksforgeeks.org/c/pipe-system-call/
         pipe(downPipes[idx]);
         pipe(upPipes[idx]);
         fcntl(upPipes[idx][0], F_SETFL, O_NONBLOCK); // make upPipes non-blocking
 
+        // process creation code from Operating System Concepts 10th Ed. Silberschatz, Gagne, Galvin.
         pid_t pid = fork();
 
         if(pid < 0) // failed child process
@@ -169,7 +164,7 @@ int main()
         if(readyChild != -1)
         {
             printf("Child %d is ready for a URL! sending %d...\n", readyChild, URLindex);
-            fflush(stdout);
+            fflush(stdout); // fflush from https://pubs.opengroup.org/onlinepubs/000095399/functions/fflush.html
             // child is ready
             char *url = readURL(URLindex);
 
@@ -219,6 +214,8 @@ int main()
 
 char* readURL(int nextIndex)
 {
+    // file reading code from https://www.w3schools.com/c/c_files_read.php
+
     FILE *filePtr = fopen(path, "r");
 
     static char url[buffer_size];
@@ -269,6 +266,8 @@ char* readURL(int nextIndex)
 
 int downloadToFile(char *url, char *filename)
 {
+    // curl download code from https://www.stackoverflow.com/questions/11471690/curl_h_no_such_file_or_directory
+    
     char* name;
     name = nameFromURL(url);
     printf("Attempting download of %s.\n", name);
@@ -338,3 +337,4 @@ char* nameFromURL(char* url) // edited from https://www.geeksforgeeks.org/c/get-
     return &newName;
 
 }
+
